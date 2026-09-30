@@ -1020,10 +1020,20 @@ let soundEnabled = true;
 let correctAudio = null;
 let wrongAudio = null;
 let correctStopTimeout = null;
+let correctGainNode = null;
 
 function initAudio() {
   if (!correctAudio) { correctAudio = new Audio('dung-vo-tay.mp3'); correctAudio.preload = 'auto'; }
   if (!wrongAudio) { wrongAudio = new Audio('sai.wav'); wrongAudio.preload = 'auto'; }
+  // volume của HTMLAudioElement tối đa là 1; GainNode cho phép tăng riêng âm đúng thêm ~4 dB.
+  const ctx = getAudioCtx();
+  if (ctx && !correctGainNode) {
+    const source = ctx.createMediaElementSource(correctAudio);
+    correctGainNode = ctx.createGain();
+    correctGainNode.gain.value = 1.6;
+    source.connect(correctGainNode);
+    correctGainNode.connect(ctx.destination);
+  }
 }
 
 let audioCtx = null;
