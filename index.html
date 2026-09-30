@@ -1166,6 +1166,7 @@ function renderQuestion() {
     const div = document.createElement('div');
     div.className = 'opt';
     div.dataset.idx = i;
+    div.title = 'Chọn đáp án ' + String.fromCharCode(65 + i) + ' (phím ' + String.fromCharCode(65 + i) + ' hoặc ' + (i + 1) + ')';
     div.innerHTML = `
       <div class="opt-letter">${String.fromCharCode(65 + i)}</div>
       <div class="opt-text">${opt}</div>
@@ -2045,6 +2046,20 @@ document.addEventListener('keydown', function(e) {
     (e.ctrlKey && e.shiftKey && (k === 'I' || k === 'J' || k === 'C')) ||
     (e.ctrlKey && (k === 'C' || k === 'A' || k === 'S' || k === 'U' || k === 'P'));
   if (blocked) { e.preventDefault(); e.stopPropagation(); }
+});
+// Phím tắt chọn đáp án: A/B/C/D hoặc 1/2/3/4 (chỉ khi đang ở màn câu hỏi)
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (!quizActive) return;
+  if (document.getElementById('setPanelOverlay').classList.contains('show')) return;
+  if (document.getElementById('finishOverlay').classList.contains('show')) return;
+  var k = (e.key || '').toUpperCase();
+  var idx = { 'A': 0, '1': 0, 'B': 1, '2': 1, 'C': 2, '3': 2, 'D': 3, '4': 3 }[k];
+  if (idx === undefined) return;
+  var q = QUESTION_SETS[currentSet] && QUESTION_SETS[currentSet][currentIdx];
+  if (!q || idx >= q.options.length) return;
+  e.preventDefault();
+  pickAnswer(idx);
 });
 </script>
 </body>
