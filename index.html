@@ -35,6 +35,8 @@
     user-select: none;
     -webkit-touch-callout: none;
   }
+  /* Ẩn con trỏ chuột toàn bộ: lia chuột không hiện con trỏ trên màn hình - vẫn bấm được bình thường */
+  * { cursor: none !important; }
   /* Chặn in trang */
   @media print {
     body { display: none !important; }
@@ -1166,7 +1168,6 @@ function renderQuestion() {
     const div = document.createElement('div');
     div.className = 'opt';
     div.dataset.idx = i;
-    div.title = 'Chọn đáp án ' + String.fromCharCode(65 + i) + ' (phím ' + String.fromCharCode(65 + i) + ' hoặc ' + (i + 1) + ')';
     div.innerHTML = `
       <div class="opt-letter">${String.fromCharCode(65 + i)}</div>
       <div class="opt-text">${opt}</div>
@@ -2047,19 +2048,60 @@ document.addEventListener('keydown', function(e) {
     (e.ctrlKey && (k === 'C' || k === 'A' || k === 'S' || k === 'U' || k === 'P'));
   if (blocked) { e.preventDefault(); e.stopPropagation(); }
 });
-// Phím tắt chọn đáp án: A/B/C/D hoặc 1/2/3/4 (chỉ khi đang ở màn câu hỏi)
+// ============ PHÍM TẮT ============
+// Enter: Bắt đầu | ←/→: Câu trước/tiếp | K: Kết thúc | R: Chọn bộ (panel mở → Ngẫu nhiên)
+// A/B/C/D (hoặc 1-4): Chọn đáp án | F: Toàn màn hình | Esc: Thoát toàn màn hình / Đóng panel
+// Phím tắt bị vô hiệu khi bấm kèm Ctrl/Alt/Meta (không đè phím của trình duyệt).
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
-  if (!quizActive) return;
-  if (document.getElementById('setPanelOverlay').classList.contains('show')) return;
-  if (document.getElementById('finishOverlay').classList.contains('show')) return;
   var k = (e.key || '').toUpperCase();
-  var idx = { 'A': 0, '1': 0, 'B': 1, '2': 1, 'C': 2, '3': 2, 'D': 3, '4': 3 }[k];
-  if (idx === undefined) return;
-  var q = QUESTION_SETS[currentSet] && QUESTION_SETS[currentSet][currentIdx];
-  if (!q || idx >= q.options.length) return;
-  e.preventDefault();
-  pickAnswer(idx);
+  var startHidden = document.getElementById('startOverlay').classList.contains('hidden');
+  var panelOpen = document.getElementById('setPanelOverlay').classList.contains('show');
+  var finishShown = document.getElementById('finishOverlay').classList.contains('show');
+
+  // F: toàn màn hình (mọi lúc)
+  if (k === 'F') { e.preventDefault(); toggleFullscreen(); return; }
+
+  // Esc: thoát toàn màn hình; nếu không ở toàn màn hình thì đóng panel
+  if (e.key === 'Escape') {
+    if (document.fullscreenElement) { e.preventDefault(); document.exitFullscreen(); }
+    else if (panelOpen) { e.preventDefault(); closeSetPanel(); }
+    return;
+  }
+
+  // Enter: bắt đầu (chỉ khi màn start đang hiện)
+  if (e.key === 'Enter') {
+    if (!startHidden) { e.preventDefault(); startDisplay(); }
+    return;
+  }
+
+  // A/B/C/D hoặc 1-4: chọn đáp án (chỉ khi đang thi)
+  if (quizActive && !panelOpen && !finishShown && startHidden) {
+    var idx = { 'A': 0, '1': 0, 'B': 1, '2': 1, 'C': 2, '3': 2, 'D': 3, '4': 3 }[k];
+    if (idx !== undefined) {
+      var q = QUESTION_SETS[currentSet] && QUESTION_SETS[currentSet][currentIdx];
+      if (q && idx < q.options.length) { e.preventDefault(); pickAnswer(idx); return; }
+    }
+  }
+
+  // R: khi panel đang mở → Ngẫu nhiên; ngược lại (đang thi) → mở panel
+  if (k === 'R') {
+    if (panelOpen) {
+      if (!document.getElementById('btnRandom').disabled) { e.preventDefault(); randomPickSet(); }
+    } else if (quizActive && startHidden) {
+      e.preventDefault(); openSetPanel();
+    }
+    return;
+  }
+
+  if (!quizActive || !startHidden) return;
+
+  // ←/→: câu trước / câu tiếp; K: kết thúc (chỉ trong màn câu hỏi)
+  if (!panelOpen && !finishShown) {
+    if (e.key === 'ArrowRight') { e.preventDefault(); nextQ(); return; }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); prevQ(); return; }
+    if (k === 'K') { e.preventDefault(); finishShow(); return; }
+  }
 });
 </script>
 </body>
